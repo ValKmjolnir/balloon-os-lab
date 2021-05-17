@@ -42,14 +42,8 @@ stackset:
 	mov $0xff00,%sp          # sp=0xff00 ss:sp ($INITSEG<<4)+0xff00
 
 start:
-	mov $0x03,%ah            # 0x03 read cursor position
-	xor %bh,%bh              # set page 0
-	int $0x10                # BIOS video service
-
-	mov $msg,%bp             # string address es:bp ($INITSEG<<4)+$msg
-	mov $0x1301,%ax          # write string,move cursor
-	mov $0x0007,%bx          # page 0(bh 0x00),black background/white characters(bl 0x07)
-	mov $28,%cx              # str length
+	mov $0x01,%ah
+	mov $0x20,%ch            # 0010 hide cursor
 	int $0x10                # BIOS video service
 
 load_setup:
@@ -105,28 +99,8 @@ load_process:
 	jmp check                # else check
 
 load_success:
-	mov $0x03,%ah            # read cursor position
-	xor %bh,%bh              # page 0
-	int $0x10                # BIOS video service
-	
-	mov $INITSEG,%ax
-	mov %ax,%es              # es is changed before
-
-	mov $success,%bp         # str address es:bp
-	mov $0x1301,%ax          # write str,move cursor
-	mov $0x0007,%bx          # page 0(bh),black back/white char(0x07 bl)
-	mov $15,%cx              # str length
-	int $0x10                # BIOS video service
-	
 	ljmp $SETUPSEG,$0        # cs:ip=0x90200
-msg:
-	.ascii "starting balloon system..."
-	.byte 13,10              # \r\n
-success:
-	.ascii "setup loaded."
-	.byte 13,10              # \r\n
 
 .=510
 signature:
 	.word 0xaa55             # magic number for MBR
-
