@@ -17,11 +17,7 @@ struct
     short ss;  // ss  0x10
 }stack_start={&system_stack[2048],0x10};
 
-int help()
-{
-    printk("This is a toy OS written by ValKmjolnir\n");
-    return 0;
-}
+int help();
 
 int version()
 {
@@ -32,23 +28,63 @@ int version()
     return 0;
 }
 
+int reboot()
+{
+    // keyboard controller error reboot
+    asm(
+        "movb $0xfe,%al\n"
+        "outb %al,$0x64\n"
+    );
+    // write 0x0e to 0xcf9 reset but not usefull in virtualbox
+    // 0x02 soft reset
+    // 0x06 hard reset
+    // 0x0e full reset
+    asm(
+        "xor %dx,%dx\n"
+        "xor %al,%al\n"
+        "mov $0xcf9,%dx\n"
+        "in %dx,%al\n"
+        "mov $0xcf9,%dx\n"
+        "orb $0x0e,%al\n"
+        "out %al,%dx"
+    );
+    return 0;
+}
+
+int shutdown()
+{
+    asm(
+        "mov $0x5301,%ax\n"
+        "xor %bx,%bx\n"
+        "int $0x15"
+    );
+    return 0;
+}
+
 struct
 {
     char* cmd_name;
     int (*func_ptr)();
-}command_info[]=
+}cmd_info[]=
 {
     {"help",help},
     {"version",version},
+    {"reset",reboot},
+    {"shutdown",shutdown},
     {NULL,NULL}
 };
+int help()
+{
+    for(int i=0;cmd_info[i].cmd_name;++i)
+        printk("  %s\n",cmd_info[i].cmd_name);
+}
 
 void execcmd(const char* buf)
 {
-    for(int i=0;command_info[i].cmd_name;++i)
-        if(!strcmp(command_info[i].cmd_name,buf))
+    for(int i=0;cmd_info[i].cmd_name;++i)
+        if(!strcmp(cmd_info[i].cmd_name,buf))
         {
-            command_info[i].func_ptr();
+            cmd_info[i].func_ptr();
             return;
         }
     printk("%s: command not found\n",buf);
